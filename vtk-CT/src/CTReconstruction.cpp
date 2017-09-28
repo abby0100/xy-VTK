@@ -217,4 +217,19 @@ namespace CTReconstruction
 		renderWindowInteractor->Start();
 	}
 
+	void reconstruction3(const char* dicom_path)
+	{
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction3 dicom_path:", dicom_path);
+
+		vtkSmartPointer<vtkDICOMImageReader> reader = vtkSmartPointer<vtkDICOMImageReader>::New();
+		reader->SetDirectoryName(dicom_path);
+
+		// Visualize  
+		vtkSmartPointer<vtkImageViewer2> imageViewer = vtkSmartPointer<vtkImageViewer2>::New();
+		imageViewer->SetInputConnection(reader->GetOutputPort());
+		imageViewer->Render();
+
+		while (true) {}
+	}
+
 }
