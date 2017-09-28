@@ -252,7 +252,8 @@ namespace CTReconstruction
 
 		vtkContourFilter *skinExtractor = vtkContourFilter::New();
 		skinExtractor->SetInputConnection(v16->GetOutputPort());
-		skinExtractor->SetValue(0, 500);
+		skinExtractor->SetValue(0, -100);
+		//skinExtractor->SetValue(0, 500);
 		vtkPolyDataNormals *skinNormals = vtkPolyDataNormals::New();
 		skinNormals->SetInputConnection(skinExtractor->GetOutputPort());
 		skinNormals->SetFeatureAngle(60.0);
@@ -286,7 +287,7 @@ namespace CTReconstruction
 		aCamera->Dolly(1.5);
 
 
-		aRenderer->SetBackground(1, 1, 1);
+		aRenderer->SetBackground(0.5, 0.5, 0.5);
 		renWin->SetSize(640, 480);
 
 
