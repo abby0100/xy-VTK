@@ -45,4 +45,15 @@ namespace MyLog {
 		fout << std::flush;
 		fout.close();
 	}
+
+	void Debug(const char* LOG_TAG, int line, char* msg, const char* param)
+	{
+		std::string logPath = LOG_TAG;
+		logPath += logFileType;
+		std::ofstream fout(logPath, std::ios::app);
+
+		fout << MyTime() << LOG_TAG << line << "\t" << msg << " " << param << std::endl;
+		fout << std::flush;
+		fout.close();
+	}
 }

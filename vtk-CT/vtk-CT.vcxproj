@@ -72,6 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>F:\git\cpp\vtk-CT\vtk-CT\include;$(IncludePath)</IncludePath>
+    <LibraryPath>F:\git\cpp\vtk-CT\vtk-CT\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
