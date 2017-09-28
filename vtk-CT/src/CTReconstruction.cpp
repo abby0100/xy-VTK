@@ -45,6 +45,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 
 #pragma comment (lib, "vtkInteractionImage-7.1.lib")
 #pragma comment (lib, "vtkRenderingFreeType-7.1.lib")
+#pragma comment (lib, "./vtkFiltersModeling-7.1.lib")
 
 /**
 * From blog: 用VTK实现CT图片的三维重建过程
@@ -232,4 +233,80 @@ namespace CTReconstruction
 		while (true) {}
 	}
 
+	void reconstruction4(const char* dicom_path)
+	{
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction4 dicom_path:", dicom_path);
+
+		vtkRenderer *aRenderer = vtkRenderer::New();
+		vtkRenderWindow *renWin = vtkRenderWindow::New();
+		renWin->AddRenderer(aRenderer);
+		vtkRenderWindowInteractor *iren = vtkRenderWindowInteractor::New();
+		iren->SetRenderWindow(renWin);
+
+
+		vtkDICOMImageReader *v16 = vtkDICOMImageReader::New();
+		v16->SetDataByteOrderToLittleEndian();
+		v16->SetDirectoryName(dicom_path);
+		v16->SetDataSpacing(3.2, 3.2, 1.5);
+
+
+		vtkContourFilter *skinExtractor = vtkContourFilter::New();
+		skinExtractor->SetInputConnection(v16->GetOutputPort());
+		skinExtractor->SetValue(0, 500);
+		vtkPolyDataNormals *skinNormals = vtkPolyDataNormals::New();
+		skinNormals->SetInputConnection(skinExtractor->GetOutputPort());
+		skinNormals->SetFeatureAngle(60.0);
+		vtkPolyDataMapper *skinMapper = vtkPolyDataMapper::New();
+		skinMapper->SetInputConnection(skinNormals->GetOutputPort());
+		skinMapper->ScalarVisibilityOff();
+		vtkActor *skin = vtkActor::New();
+		skin->SetMapper(skinMapper);
+
+
+		vtkOutlineFilter *outlineData = vtkOutlineFilter::New();
+		outlineData->SetInputConnection(v16->GetOutputPort());
+		vtkPolyDataMapper *mapOutline = vtkPolyDataMapper::New();
+		mapOutline->SetInputConnection(outlineData->GetOutputPort());
+		vtkActor *outline = vtkActor::New();
+		outline->SetMapper(mapOutline);
+		outline->GetProperty()->SetColor(0, 0, 0);
+
+
+		vtkCamera *aCamera = vtkCamera::New();
+		aCamera->SetViewUp(0, 0, -1);
+		aCamera->SetPosition(0, 1, 0);
+		aCamera->SetFocalPoint(0, 0, 0);
+		aCamera->ComputeViewPlaneNormal();
+
+
+		aRenderer->AddActor(outline);
+		aRenderer->AddActor(skin);
+		aRenderer->SetActiveCamera(aCamera);
+		aRenderer->ResetCamera();
+		aCamera->Dolly(1.5);
+
+
+		aRenderer->SetBackground(1, 1, 1);
+		renWin->SetSize(640, 480);
+
+
+		aRenderer->ResetCameraClippingRange();
+
+		// Initialize the event loop and then start it.     
+		iren->Initialize();
+		iren->Start();
+
+		v16->Delete();
+		skinExtractor->Delete();
+		skinNormals->Delete();
+		skinMapper->Delete();
+		skin->Delete();
+		outlineData->Delete();
+		mapOutline->Delete();
+		outline->Delete();
+		aCamera->Delete();
+		iren->Delete();
+		renWin->Delete();
+		aRenderer->Delete();
+	}
 }

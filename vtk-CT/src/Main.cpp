@@ -12,7 +12,8 @@ int main()
 	const char* testPath = "C:\\Users\\yuanxion\\Pictures\\20170905-VR-SDK\\Resources\\test\\";
 	//CTReconstruction::reconstruction(testPath);
 	//CTReconstruction::reconstruction2(testPath);
-	CTReconstruction::reconstruction3(testPath);
+	//CTReconstruction::reconstruction3(testPath);
+	CTReconstruction::reconstruction4(testPath);
 
 	return 0;
 }
