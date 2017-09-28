@@ -1,6 +1,7 @@
 ﻿#include "vtkAutoInit.h" 
 VTK_MODULE_INIT(vtkRenderingOpenGL2); // VTK was built with vtkRenderingOpenGL2
 VTK_MODULE_INIT(vtkInteractionStyle); 
+VTK_MODULE_INIT(vtkRenderingFreeType);
 
 #include "MyLog.h"
 #include "vtkRenderer.h"
@@ -25,6 +26,13 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 #include "vtkDecimatePro.h"
 #include "vtkImageShrink3D.h"
 
+#include "vtkImageviewer2.h"
+#include "vtkTextProperty.h"
+#include "vtkTextMapper.h"
+#include "vtkActor2D.h"
+#include "vtkInteractorStyleImage.h"
+
+
 #pragma comment (lib, "vtkCommonCore-7.1.lib")
 #pragma comment (lib, "vtkCommonExecutionModel-7.1.lib")
 #pragma comment (lib, "vtkFiltersSources-7.1.lib")
@@ -35,9 +43,17 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 #pragma comment (lib, "vtkFiltersCore-7.1.lib")
 #pragma comment (lib, "vtkImagingCore-7.1.lib")
 
+#pragma comment (lib, "vtkInteractionImage-7.1.lib")
+#pragma comment (lib, "vtkRenderingFreeType-7.1.lib")
+
 /**
 * From blog: 用VTK实现CT图片的三维重建过程
 * http://blog.sina.com.cn/s/blog_7e40ef210100to11.html
+*	http://blog.sina.com.cn/s/blog_bda802080101k5pb.html
+*	http://blog.csdn.net/chinamming/article/details/16829351
+*	
+* Error blog: VTK: VTK Error 问题集
+* http://blog.csdn.net/fanhenghui/article/details/52785745
 */
 
 namespace CTReconstruction
@@ -63,7 +79,11 @@ namespace CTReconstruction
 
 		vtkDICOMImageReader *dicomReader = vtkDICOMImageReader::New();
 		dicomReader->SetDataByteOrderToLittleEndian();
+
 		dicomReader->SetDirectoryName(dicom_path);
+		//dicomReader->SetFilePrefix(dicom_path);
+		//dicomReader->SetFilePattern("*.dcm");
+
 		dicomReader->Update();
 
 		vtkImageShrink3D *shrink = vtkImageShrink3D::New();
@@ -126,6 +146,75 @@ namespace CTReconstruction
 		iren->Delete();
 		renWin->Delete();
 		renderer->Delete();
+	}
+
+	void reconstruction2(const char* dicom_path)
+	{
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction2 dicom_path:", dicom_path);
+
+		// Read all the DICOM files in the specified directory.  
+		vtkSmartPointer<vtkDICOMImageReader> reader =
+			vtkSmartPointer<vtkDICOMImageReader>::New();
+		reader->SetDirectoryName(dicom_path);
+		reader->Update();
+
+		// Visualize  
+		vtkSmartPointer<vtkImageViewer2> imageViewer =
+			vtkSmartPointer<vtkImageViewer2>::New();
+		imageViewer->SetInputConnection(reader->GetOutputPort());
+
+		// slice status message  
+		vtkSmartPointer<vtkTextProperty> sliceTextProp = vtkSmartPointer<vtkTextProperty>::New();
+		sliceTextProp->SetFontFamilyToCourier();
+		sliceTextProp->SetFontSize(20);
+		sliceTextProp->SetVerticalJustificationToBottom();
+		sliceTextProp->SetJustificationToLeft();
+
+		vtkSmartPointer<vtkTextMapper> sliceTextMapper = vtkSmartPointer<vtkTextMapper>::New();
+		//std::string msg = StatusMessage::Format(imageViewer->GetSliceMin(), imageViewer->GetSliceMax());
+		//sliceTextMapper->SetInput(msg.c_str());
+		sliceTextMapper->SetTextProperty(sliceTextProp);
+
+		vtkSmartPointer<vtkActor2D> sliceTextActor = vtkSmartPointer<vtkActor2D>::New();
+		sliceTextActor->SetMapper(sliceTextMapper);
+		sliceTextActor->SetPosition(15, 10);
+
+		// usage hint message  
+		vtkSmartPointer<vtkTextProperty> usageTextProp = vtkSmartPointer<vtkTextProperty>::New();
+		usageTextProp->SetFontFamilyToCourier();
+		usageTextProp->SetFontSize(14);
+		usageTextProp->SetVerticalJustificationToTop();
+		usageTextProp->SetJustificationToLeft();
+
+		vtkSmartPointer<vtkTextMapper> usageTextMapper = vtkSmartPointer<vtkTextMapper>::New();
+		usageTextMapper->SetInput("- Slice with mouse wheel\n  or Up/Down-Key\n- Zoom with pressed right\n  mouse button while dragging");
+		usageTextMapper->SetTextProperty(usageTextProp);
+
+		vtkSmartPointer<vtkActor2D> usageTextActor = vtkSmartPointer<vtkActor2D>::New();
+		usageTextActor->SetMapper(usageTextMapper);
+		usageTextActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		usageTextActor->GetPositionCoordinate()->SetValue(0.05, 0.95);
+
+		vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor =
+			vtkSmartPointer<vtkRenderWindowInteractor>::New();
+
+		vtkSmartPointer<vtkInteractorStyleImage> myInteractorStyle =
+			vtkSmartPointer<vtkInteractorStyleImage>::New();
+
+		//myInteractorStyle->SetImageViewer(imageViewer);
+		//myInteractorStyle->SetStatusMapper(sliceTextMapper);
+
+
+		imageViewer->SetupInteractor(renderWindowInteractor);
+		renderWindowInteractor->SetInteractorStyle(myInteractorStyle);
+
+		imageViewer->GetRenderer()->AddActor2D(sliceTextActor);
+		imageViewer->GetRenderer()->AddActor2D(usageTextActor);
+
+		imageViewer->Render();
+		imageViewer->GetRenderer()->ResetCamera();
+		imageViewer->Render();
+		renderWindowInteractor->Start();
 	}
 
 }
