@@ -80,17 +80,16 @@ namespace CTReconstruction
 
 		vtkDICOMImageReader *dicomReader = vtkDICOMImageReader::New();
 		dicomReader->SetDataByteOrderToLittleEndian();
-
 		dicomReader->SetDirectoryName(dicom_path);
 		//dicomReader->SetFilePrefix(dicom_path);
 		//dicomReader->SetFilePattern("*.dcm");
-
 		dicomReader->Update();
+
 
 		vtkImageShrink3D *shrink = vtkImageShrink3D::New();
 		shrink->SetShrinkFactors(4, 4, 1);
 		shrink->AveragingOn();
-		//shrink->SetInputConnection((vtkDataObject *)dicomReader->GetOutput());
+		shrink->SetInputConnection(dicomReader->GetOutputPort());
 
 		vtkMarchingCubes *skinExtractor = vtkMarchingCubes::New();
 		skinExtractor->SetValue(0, 300);
@@ -248,18 +247,37 @@ namespace CTReconstruction
 		v16->SetDataByteOrderToLittleEndian();
 		v16->SetDirectoryName(dicom_path);
 		v16->SetDataSpacing(3.2, 3.2, 1.5);
-
-
+		
 		vtkContourFilter *skinExtractor = vtkContourFilter::New();
 		skinExtractor->SetInputConnection(v16->GetOutputPort());
+
+		// air?
+		//skinExtractor->SetValue(0, -1000);
+		// lung
+		//skinExtractor->SetValue(0, -500);
+		// skin
 		skinExtractor->SetValue(0, -100);
+		// fat?
+		//skinExtractor->SetValue(0, -50);
+		// water?
+		//skinExtractor->SetValue(0, 0);
+		// soft tissue?
+		//skinExtractor->SetValue(0, 100);
+		// contrast?
+		//skinExtractor->SetValue(0, 300);
+		// skeleton
 		//skinExtractor->SetValue(0, 500);
+		//skinExtractor->SetValue(0, 700);
+		
 		vtkPolyDataNormals *skinNormals = vtkPolyDataNormals::New();
 		skinNormals->SetInputConnection(skinExtractor->GetOutputPort());
 		skinNormals->SetFeatureAngle(60.0);
 		vtkPolyDataMapper *skinMapper = vtkPolyDataMapper::New();
 		skinMapper->SetInputConnection(skinNormals->GetOutputPort());
-		skinMapper->ScalarVisibilityOff();
+
+		// draw color
+		skinMapper->ScalarVisibilityOn();
+		//skinMapper->ScalarVisibilityOff();
 		vtkActor *skin = vtkActor::New();
 		skin->SetMapper(skinMapper);
 
@@ -270,7 +288,8 @@ namespace CTReconstruction
 		mapOutline->SetInputConnection(outlineData->GetOutputPort());
 		vtkActor *outline = vtkActor::New();
 		outline->SetMapper(mapOutline);
-		outline->GetProperty()->SetColor(0, 0, 0);
+		//outline->GetProperty()->SetColor(0, 0, 0);
+		outline->GetProperty()->SetColor(1, 1, 1);
 
 
 		vtkCamera *aCamera = vtkCamera::New();
@@ -298,6 +317,107 @@ namespace CTReconstruction
 		iren->Start();
 
 		v16->Delete();
+		skinExtractor->Delete();
+		skinNormals->Delete();
+		skinMapper->Delete();
+		skin->Delete();
+		outlineData->Delete();
+		mapOutline->Delete();
+		outline->Delete();
+		aCamera->Delete();
+		iren->Delete();
+		renWin->Delete();
+		aRenderer->Delete();
+	}
+
+
+	void reconstruction5(const char* dicom_path)
+	{
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction5 dicom_path:", dicom_path);
+
+		// Create the renderer, the render window, and the interactor. The renderer
+		vtkRenderer *aRenderer = vtkRenderer::New();
+		vtkRenderWindow *renWin = vtkRenderWindow::New();
+		renWin->AddRenderer(aRenderer);
+		vtkRenderWindowInteractor *iren = vtkRenderWindowInteractor::New();
+		iren->SetRenderWindow(renWin);
+
+		// start
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction5 start");
+
+		vtkDICOMImageReader *dicomReader = vtkDICOMImageReader::New();
+		dicomReader->SetDataByteOrderToLittleEndian();
+		dicomReader->SetDirectoryName(dicom_path);
+		dicomReader->SetDataSpacing(3.2, 3.2, 1.5);
+
+		vtkImageShrink3D *shrink = vtkImageShrink3D::New();
+		shrink->SetShrinkFactors(4, 4, 1);
+		shrink->AveragingOn();
+		shrink->SetInputConnection(dicomReader->GetOutputPort());
+
+		vtkMarchingCubes *skinExtractor = vtkMarchingCubes::New();
+		//skinExtractor->SetValue(0, 300);
+		skinExtractor->SetValue(0, -100);
+		skinExtractor->SetInputConnection(shrink->GetOutputPort());
+
+		vtkDecimatePro *deci = vtkDecimatePro::New();
+		deci->SetTargetReduction(0.3);
+		deci->SetInputConnection(skinExtractor->GetOutputPort());
+
+		vtkSmoothPolyDataFilter *smooth = vtkSmoothPolyDataFilter::New();
+		smooth->SetInputConnection(deci->GetOutputPort());
+		smooth->SetNumberOfIterations(200);
+
+		vtkPolyDataNormals *skinNormals = vtkPolyDataNormals::New();
+		skinNormals->SetInputConnection(smooth->GetOutputPort());
+		skinNormals->SetFeatureAngle(60.0);
+
+		vtkStripper *stripper = vtkStripper::New();
+		stripper->SetInputConnection(skinNormals->GetOutputPort());
+
+		vtkPolyDataMapper *skinMapper = vtkPolyDataMapper::New();
+		skinMapper->SetInputConnection(stripper->GetOutputPort());
+		// draw color
+		skinMapper->ScalarVisibilityOn();
+		//skinMapper->ScalarVisibilityOff();
+		vtkActor *skin = vtkActor::New();
+		skin->SetMapper(skinMapper);
+
+
+		vtkOutlineFilter *outlineData = vtkOutlineFilter::New();
+		outlineData->SetInputConnection(dicomReader->GetOutputPort());
+		vtkPolyDataMapper *mapOutline = vtkPolyDataMapper::New();
+		mapOutline->SetInputConnection(outlineData->GetOutputPort());
+		
+		vtkActor *outline = vtkActor::New();
+		outline->SetMapper(mapOutline);
+		//outline->GetProperty()->SetColor(0, 0, 0);
+		outline->GetProperty()->SetColor(1, 1, 1);
+
+
+		vtkCamera *aCamera = vtkCamera::New();
+		aCamera->SetViewUp(0, 0, -1);
+		aCamera->SetPosition(0, 1, 0);
+		aCamera->SetFocalPoint(0, 0, 0);
+		aCamera->ComputeViewPlaneNormal();
+
+
+		aRenderer->AddActor(outline);
+		aRenderer->AddActor(skin);
+		aRenderer->SetActiveCamera(aCamera);
+		aRenderer->ResetCamera();
+		aCamera->Dolly(1.5);
+
+
+		aRenderer->SetBackground(0.5, 0.5, 0.5);
+		renWin->SetSize(640, 480);
+		aRenderer->ResetCameraClippingRange();
+
+		// Initialize the event loop and then start it.     
+		iren->Initialize();
+		iren->Start();
+
+		dicomReader->Delete();
 		skinExtractor->Delete();
 		skinNormals->Delete();
 		skinMapper->Delete();
