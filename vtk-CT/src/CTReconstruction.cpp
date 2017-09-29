@@ -31,6 +31,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "vtkTextMapper.h"
 #include "vtkActor2D.h"
 #include "vtkInteractorStyleImage.h"
+#include "vtkOBJExporter.h"
 
 
 #pragma comment (lib, "vtkCommonCore-7.1.lib")
@@ -46,6 +47,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #pragma comment (lib, "vtkInteractionImage-7.1.lib")
 #pragma comment (lib, "vtkRenderingFreeType-7.1.lib")
 #pragma comment (lib, "./vtkFiltersModeling-7.1.lib")
+#pragma comment (lib, "./vtkIOExport-7.1.lib")
 
 /**
 * From blog: 用VTK实现CT图片的三维重建过程
@@ -66,7 +68,7 @@ namespace CTReconstruction
 
 	void reconstruction(const char* dicom_path)
 	{
-		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction dicom_path:", dicom_path);
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction dicom_path:\n", dicom_path);
 
 		// Create the renderer, the render window, and the interactor. The renderer
 		vtkRenderer *renderer = vtkRenderer::New();
@@ -234,7 +236,7 @@ namespace CTReconstruction
 
 	void reconstruction4(const char* dicom_path)
 	{
-		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction4 dicom_path:", dicom_path);
+		MyLog::Debug(LOG_TAG, __LINE__, "reconstruction4 dicom_path:\n", dicom_path);
 
 		vtkRenderer *aRenderer = vtkRenderer::New();
 		vtkRenderWindow *renWin = vtkRenderWindow::New();
@@ -308,9 +310,14 @@ namespace CTReconstruction
 
 		aRenderer->SetBackground(0.5, 0.5, 0.5);
 		renWin->SetSize(640, 480);
-
-
 		aRenderer->ResetCameraClippingRange();
+		
+		//MyLog::Debug(LOG_TAG, __LINE__, "reconstruction4 export file:", "myCT.obj");
+
+		//vtkSmartPointer<vtkOBJExporter> porter = vtkSmartPointer<vtkOBJExporter>::New();
+		//porter->SetFilePrefix("myCT");
+		//porter->SetInput(renWin);
+		//porter->Write();
 
 		// Initialize the event loop and then start it.     
 		iren->Initialize();
